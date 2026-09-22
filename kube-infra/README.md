@@ -28,6 +28,37 @@ dans la même zone et le même groupe de sécurité que les nœuds.
 VPC `vpc-00b4a783bb870d2ce`, sous-réseau `subnet-0910c5fbc38f2e216`, groupe de
 sécurité `sg-0673c4428720f8ea8`.
 
+### Topologie
+
+```mermaid
+flowchart TB
+    SSM["AWS SSM Session Manager<br/>(accès initial, dépôt clé Ansible)"]
+    LE["Let's Encrypt<br/>challenge HTTP-01"]
+    DNS["*.52.28.139.102.sslip.io"]
+
+    subgraph AWS["Compte 302805792326 : eu-central-1a"]
+        subgraph NET["VPC vpc-00b4a783bb870d2ce<br/>subnet-0910c5fbc38f2e216 / sg-0673c4428720f8ea8"]
+            N1["node-1 : control plane<br/>t4g.medium ARM64<br/>10.0.0.239 / EIP 52.28.139.102"]
+            N2["node-2 : worker<br/>t4g.medium ARM64<br/>10.0.0.55"]
+            N3["node-3 : worker<br/>t4g.medium ARM64<br/>10.0.0.4"]
+            EFS[("EFS fs-0a103a839747b0ff3<br/>PersistentVolume")]
+        end
+    end
+
+    SSM -.-> N1
+    N1 -->|Ansible rebondit ici,<br/>IP privées ensuite| N2
+    N1 --> N3
+    N1 -.->|mount| EFS
+    N2 -.->|mount| EFS
+    N3 -.->|mount| EFS
+
+    N1 -->|Traefik + servicelb<br/>ports 80/443| DNS
+    DNS --> LE
+```
+
+Seule l'IP Elastic de node-1 survit à l'extinction quotidienne : c'est le
+point d'entrée fixe du cluster, base des noms de domaine et cible d'Ansible.
+
 ## Contraintes
 
 Ces quatre points conditionnent la plupart des choix qui suivent.
@@ -138,6 +169,17 @@ aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
 5. kube-prometheus-stack, Loki et Headlamp
 6. Registry privée, Sealed Secrets et `ValidatingAdmissionPolicy`
 7. Application, voir `../kube-app`
+
+```mermaid
+flowchart TD
+    A["1. Cluster k3s + montage EFS<br/>(Ansible)"] --> B["2. cert-manager<br/>HTTPS validé sur un service témoin (Traefik)"]
+    B --> C["3. ArgoCD"]
+    C -->|reconcile| GitOps["gitops/"]
+    GitOps --> D["4. Keycloak + dex<br/>OIDC : API Kubernetes puis outils"]
+    D --> E["5. kube-prometheus-stack, Loki, Headlamp"]
+    E --> F["6. Registry privée, Sealed Secrets,<br/>ValidatingAdmissionPolicy"]
+    F --> G["7. Application (../kube-app)<br/>Helm + kustomize, PV sur EFS"]
+```
 
 ## État actuel
 
