@@ -6,8 +6,6 @@ base_domain: "{{ cluster_entrypoint_ip }}.sslip.io"
 
 k3s_version: v1.31.5+k3s1
 k3s_server_args:
-  - "--disable=traefik"
-  - "--disable=servicelb"
   - "--write-kubeconfig-mode=0644"
   - "--node-ip={{ node_ip }}"
   - "--tls-san={{ cluster_entrypoint_ip }}"

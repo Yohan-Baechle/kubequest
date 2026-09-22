@@ -9,7 +9,7 @@ Le `docker-compose.yaml` décrit trois services.
 
 | Service | Conversion |
 |---|---|
-| `traefik` | supprimé, le routage est assuré par l'ingress-nginx du cluster |
+| `traefik` | supprimé, le routage est assuré par le Traefik du cluster |
 | `app` | Deployment, image construite en arm64 et poussée sur la registry privée |
 | `db` | chart officiel Bitnami MySQL, volume persistant sur l'EFS |
 

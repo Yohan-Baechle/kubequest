@@ -35,52 +35,80 @@ Ces quatre points conditionnent la plupart des choix qui suivent.
 1. Toutes les images déployées doivent exister en `linux/arm64`.
 2. 12 Go de RAM au total pour la plateforme et l'application : il faut une
    distribution légère et des `requests` mesurées.
-3. Aucun load balancer disponible, l'exposition passe par un Ingress en NodePort
-   sur node-1.
+3. Aucun load balancer disponible, l'exposition se fait depuis node-1.
 4. Les IP publiques des workers changent à chaque redémarrage, rien ne doit en
    dépendre : Ansible rebondit sur node-1 et les nœuds communiquent par leurs
    adresses privées.
 
-## Choix techniques
+## Composants imposés
 
-**k3s** plutôt que kubeadm. Avec 4 Go par nœud, un control plane kubeadm complet
-consomme une part disproportionnée des ressources. k3s fournit un cluster
-conforme dans un seul binaire, containerd inclus, et s'installe en une commande,
-ce qui rend le rôle Ansible court et rejouable.
+Le sujet ne laisse pas le choix sur ces points.
 
-**ingress-nginx** en NodePort. L'infrastructure ne fournit pas de load balancer,
-et la Gateway API demanderait une implémentation supplémentaire sans bénéfice
-ici. ingress-nginx est le contrôleur le mieux documenté pour ce mode
-d'exposition et s'intègre directement à cert-manager.
+| Composant | Rôle |
+|---|---|
+| Ansible | provisionnement du cluster, rejouable |
+| dex | fournisseur OIDC devant l'IdP |
+| Loki | collecte et visualisation des logs |
+| kustomize | manifestes des dépôts GitOps |
+| Helm | chart de l'application et chart officiel de la base |
+| cert-manager et Let's Encrypt | certificats TLS |
+| `ValidatingAdmissionPolicy` | contrôle d'admission natif, en CEL |
+| Registry privée authentifiée | publication et tirage des images |
+| PersistentVolume sur EFS | stockage de la base |
+| CronJob | tâche d'exploitation périodique |
 
-**Headlamp** comme dashboard. Il gère OIDC par configuration, là où
-kubernetes-dashboard s'intègre plus difficilement à une chaîne dex, alors que le
-sujet demande de couvrir tous les outils.
+## Choix à justifier
 
-**kube-prometheus-stack** pour le monitoring. Il apporte Prometheus, Alertmanager
-et Grafana déjà configurés avec les règles d'alerte système. Grafana sert aussi
-de visualisation pour Loki, ce qui évite un second outil. La rétention est
-réduite à 24 h compte tenu des ressources.
+Le sujet propose plusieurs options sur ces composants.
 
-**Loki** avec Grafana Alloy comme collecteur, Promtail étant déprécié.
+**Ingress plutôt que Gateway API.** La Gateway API demanderait d'installer une
+implémentation supplémentaire pour un besoin de routage qui reste simple.
 
-**ArgoCD** comme opérateur GitOps. Son interface montre directement l'état de
-synchronisation et de santé attendu en soutenance, et il embarque dex, qui est
-de toute façon imposé pour l'authentification.
+**Traefik**, celui livré par k3s. C'est le seul contrôleur déjà présent dans la
+distribution : aucun composant à ajouter. Surtout, k3s l'expose par son
+servicelb intégré, qui publie réellement les ports 80 et 443 sur les nœuds. Un
+Ingress exposé en NodePort seul se situerait dans la plage 30000-32767 et ne
+pourrait pas répondre au challenge HTTP-01 de Let's Encrypt, ce qui empêcherait
+la génération automatique des certificats. Accessoirement, l'application fournie
+utilisait déjà Traefik dans son docker-compose.
+
+**Headlamp** comme dashboard. Il s'interface avec un fournisseur OIDC par simple
+configuration, là où kubernetes-dashboard attend un token et s'intègre mal à une
+chaîne dex, alors que le sujet demande de couvrir tous les outils.
+
+**kube-prometheus-stack** pour le monitoring. Il fournit Prometheus,
+Alertmanager, Grafana et les règles d'alerte système dans un seul chart.
+VictoriaMetrics consommerait moins de mémoire mais imposerait d'assembler la
+visualisation et l'alerting séparément. La rétention est réduite à 24 h pour
+compenser.
+
+**ArgoCD** comme opérateur GitOps. La soutenance demande de montrer l'état de
+synchronisation et de santé des applications, ce que son interface affiche
+directement, alors que Flux nécessiterait la ligne de commande. Il embarque de
+plus dex, qui est imposé.
 
 **Sealed Secrets** pour les secrets. External Secrets supposerait de déployer et
-sécuriser un backend externe. Sealed Secrets chiffre vers le cluster via un seul
-contrôleur, ce qui suffit à garantir qu'aucun secret en clair ne soit commité.
+de sécuriser un backend externe. Sealed Secrets chiffre vers le cluster avec un
+seul contrôleur, ce qui suffit à garantir qu'aucun secret en clair ne soit
+commité.
 
-**Keycloak** comme fournisseur d'identité, fédéré par dex. C'est l'exemple du
-sujet et il permet une vraie gestion des utilisateurs et des groupes, nécessaire
-pour mapper des rôles RBAC.
+**Keycloak** comme fournisseur d'identité, fédéré par dex. C'est l'exemple cité
+par le sujet et il permet une gestion des utilisateurs et des groupes,
+nécessaire pour mapper des rôles RBAC. Il est déployé avec sa base embarquée
+pour limiter son empreinte mémoire.
 
-**registry:2** avec authentification htpasswd et TLS pour la registry privée.
-Harbor est plus complet mais lourd en mémoire et son support arm64 est incertain.
+## Choix hors sujet
 
-**cert-manager** avec Let's Encrypt en HTTP-01, sans gestion DNS grâce à
-sslip.io.
+Le sujet ne mentionne ni distribution Kubernetes ni produit de registry.
+
+**k3s.** Avec 4 Go par nœud, un control plane kubeadm complet consomme une part
+disproportionnée des ressources. k3s fournit un cluster conforme dans un seul
+binaire, containerd, Traefik et servicelb inclus, et s'installe en une commande,
+ce qui rend le rôle Ansible court et rejouable.
+
+**registry:2** avec authentification htpasswd et TLS. Harbor est plus complet
+mais lourd en mémoire et son support arm64 est incertain, alors que le besoin se
+limite à une registry privée et authentifiée.
 
 ## Utilisation
 
@@ -104,11 +132,11 @@ aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
 ## Ordre de déploiement
 
 1. Cluster k3s et montage EFS avec Ansible
-2. ingress-nginx et cert-manager, HTTPS validé sur un service témoin
+2. cert-manager, HTTPS validé sur un service témoin exposé par Traefik
 3. ArgoCD, puis le reste des composants réconciliés depuis `gitops/`
 4. Keycloak et dex, OIDC sur l'API Kubernetes puis sur les outils
 5. kube-prometheus-stack, Loki et Headlamp
-6. Registry privée, Sealed Secrets et ValidatingAdmissionPolicy
+6. Registry privée, Sealed Secrets et `ValidatingAdmissionPolicy`
 7. Application, voir `../kube-app`
 
 ## État actuel
