@@ -21,8 +21,12 @@ Les machines sont éteintes automatiquement chaque soir. Seule l'IP Elastic de
 node-1 survit à ce cycle, c'est donc le point d'entrée du cluster et la base des
 noms de domaine, résolus via `*.52.28.139.102.sslip.io`.
 
-Un système de fichiers EFS partagé est monté sur les trois nœuds et sert de
-support aux volumes persistants.
+Le système de fichiers EFS partagé `fs-0a103a839747b0ff3` est monté sur les trois
+nœuds et sert de support aux volumes persistants. Sa cible de montage se trouve
+dans la même zone et le même groupe de sécurité que les nœuds.
+
+VPC `vpc-00b4a783bb870d2ce`, sous-réseau `subnet-0910c5fbc38f2e216`, groupe de
+sécurité `sg-0673c4428720f8ea8`.
 
 ## Contraintes
 

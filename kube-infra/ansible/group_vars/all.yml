@@ -12,6 +12,6 @@ k3s_server_args:
   - "--node-ip={{ node_ip }}"
   - "--tls-san={{ cluster_entrypoint_ip }}"
 
-efs_id: "fs-CHANGEME"
+efs_id: fs-0a103a839747b0ff3
 efs_dns: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com"
 efs_mount_point: /mnt/efs
