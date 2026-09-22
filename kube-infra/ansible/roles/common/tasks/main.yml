@@ -1,0 +1,43 @@
+---
+- name: Definir le hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Resolution des noeuds entre eux
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "^{{ hostvars[item].node_ip }}\\s"
+    line: "{{ hostvars[item].node_ip }} {{ item }}"
+  loop: "{{ groups['k3s_cluster'] }}"
+
+- name: Installer les paquets de base
+  ansible.builtin.apt:
+    name:
+      - curl
+      - nfs-common
+      - jq
+    state: present
+    update_cache: true
+
+- name: Desactiver le swap
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+
+- name: Charger les modules noyau requis
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Appliquer les parametres sysctl reseau
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop:
+    - { name: net.bridge.bridge-nf-call-iptables, value: "1" }
+    - { name: net.bridge.bridge-nf-call-ip6tables, value: "1" }
+    - { name: net.ipv4.ip_forward, value: "1" }

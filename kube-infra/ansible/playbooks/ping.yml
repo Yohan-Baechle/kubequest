@@ -1,0 +1,16 @@
+---
+- name: Verifier la joignabilite des noeuds
+  hosts: k3s_cluster
+  gather_facts: true
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:
+
+    - name: Resume du noeud
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} :
+          {{ ansible_distribution }} {{ ansible_distribution_version }},
+          arch={{ ansible_architecture }},
+          ram={{ ansible_memtotal_mb }}Mo,
+          cpu={{ ansible_processor_vcpus }}

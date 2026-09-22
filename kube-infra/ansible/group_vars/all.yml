@@ -1,0 +1,17 @@
+---
+aws_region: eu-central-1
+
+cluster_entrypoint_ip: 52.28.139.102
+base_domain: "{{ cluster_entrypoint_ip }}.sslip.io"
+
+k3s_version: v1.31.5+k3s1
+k3s_server_args:
+  - "--disable=traefik"
+  - "--disable=servicelb"
+  - "--write-kubeconfig-mode=0644"
+  - "--node-ip={{ node_ip }}"
+  - "--tls-san={{ cluster_entrypoint_ip }}"
+
+efs_id: "fs-CHANGEME"
+efs_dns: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com"
+efs_mount_point: /mnt/efs

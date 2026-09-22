@@ -1,0 +1,38 @@
+---
+- name: Installer le serveur k3s
+  ansible.builtin.shell:
+    cmd: >-
+      curl -sfL https://get.k3s.io |
+      INSTALL_K3S_VERSION={{ k3s_version }}
+      INSTALL_K3S_EXEC="server {{ k3s_server_args | join(' ') }}"
+      sh -
+    creates: /usr/local/bin/k3s
+
+- name: Attendre que l'API reponde
+  ansible.builtin.wait_for:
+    port: 6443
+    host: "{{ node_ip }}"
+    timeout: 180
+
+- name: Lire le token d'enrolement
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: node_token
+
+- name: Exposer le token aux agents
+  ansible.builtin.set_fact:
+    k3s_token: "{{ node_token.content | b64decode | trim }}"
+
+- name: Lire le kubeconfig
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: kubeconfig
+
+- name: Ecrire le kubeconfig en local
+  ansible.builtin.copy:
+    content: >-
+      {{ kubeconfig.content | b64decode | replace('127.0.0.1', cluster_entrypoint_ip) }}
+    dest: "{{ playbook_dir }}/../kubeconfig"
+    mode: "0600"
+  delegate_to: localhost
+  become: false

@@ -1,0 +1,6 @@
+kubeconfig
+*.retry
+.env
+*.key
+*.pem
+.DS_Store
