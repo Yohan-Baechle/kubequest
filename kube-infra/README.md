@@ -140,21 +140,99 @@ ce qui rend le rôle Ansible court et rejouable.
 mais lourd en mémoire et son support arm64 est incertain, alors que le besoin se
 limite à une registry privée et authentifiée.
 
-## Utilisation
+## Mise en route
 
-Depuis node-1, après `sudo dnf install -y git ansible-core` et
-`ansible-galaxy collection install ansible.posix` :
+Marche à suivre pour reprendre le projet depuis une machine vierge.
+
+### 1. Accéder à l'infrastructure
+
+Se connecter au portail IAM Identity Center avec son adresse Epitech, choisir le
+compte `kubequest2-group-25` et le rôle `kubequest2-student`, puis sélectionner
+la région Europe (Francfort).
+
+Dans EC2 puis Instances, démarrer les trois instances si elles sont arrêtées.
+Elles le sont chaque soir automatiquement.
+
+Le groupe de sécurité n'ouvre ni le port 22 ni le port 6443 vers l'extérieur, et
+le rôle étudiant ne permet pas de le modifier. Ansible et `kubectl` s'exécutent
+donc depuis node-1, sur lequel on se connecte par Session Manager : sélectionner
+l'instance, cliquer sur Se connecter, puis Gestionnaire de sessions SSM.
+
+En ligne de commande, avec l'AWS CLI configurée :
 
 ```bash
-cd kube-infra/ansible
-ansible-playbook playbooks/ping.yml
-ansible-playbook playbooks/site.yml
-kubectl get nodes -o wide
+aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
 ```
 
-Le playbook installe le kubeconfig dans `~/.kube/config` sur node-1.
+### 2. Préparer node-1
 
-Pour repartir d'un cluster vierge, par exemple pour la démonstration :
+La session s'ouvre en tant que `ssm-user`. Tout le reste se fait sous
+`ec2-user`, l'utilisateur par défaut des instances.
+
+```bash
+sudo su - ec2-user
+sudo dnf install -y git ansible-core
+ansible-galaxy collection install ansible.posix
+git clone https://github.com/Yohan-Baechle/kubequest.git
+```
+
+### 3. Autoriser node-1 à joindre les workers
+
+Ansible atteint node-2 et node-3 par SSH. Si node-1 n'a pas encore de clé :
+
+```bash
+ssh-keygen -t ed25519 -C "node-1-kubequest" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub
+```
+
+Déclarer cette clé publique dans `ssh_public_keys`, au fichier
+`inventory/group_vars/all.yml`, puis la déposer une première fois sur node-2 et
+node-3 par Session Manager :
+
+```bash
+sudo -u ec2-user mkdir -p /home/ec2-user/.ssh
+echo '<clé publique de node-1>' | sudo tee -a /home/ec2-user/.ssh/authorized_keys
+sudo chmod 700 /home/ec2-user/.ssh
+sudo chmod 600 /home/ec2-user/.ssh/authorized_keys
+sudo chown -R ec2-user:ec2-user /home/ec2-user/.ssh
+```
+
+C'est la seule étape manuelle du provisionnement. Le rôle `ssh_keys` entretient
+ensuite cette liste sur les trois nœuds.
+
+### 4. Provisionner le cluster
+
+```bash
+cd kubequest/kube-infra/ansible
+ansible-playbook playbooks/ping.yml
+ansible-playbook playbooks/site.yml
+```
+
+`ping.yml` vérifie que les trois nœuds répondent et affiche leur système et leur
+architecture. `site.yml` installe le cluster et dépose le kubeconfig dans
+`~/.kube/config` sur node-1.
+
+### 5. Vérifier
+
+```bash
+kubectl get nodes -o wide
+kubectl get pods -A
+df -h /mnt/efs
+```
+
+Trois nœuds `Ready` sont attendus, ainsi que Traefik et un pod `svclb-traefik`
+par nœud dans `kube-system`. Sur `http://52.28.139.102`, un `404 page not found`
+de Traefik confirme que les ports 80 et 443 sont publiés.
+
+Pour vérifier que l'EFS est bien partagé entre les nœuds :
+
+```bash
+echo test | sudo tee /mnt/efs/pv/test.txt
+ssh ec2-user@10.0.0.55 cat /mnt/efs/pv/test.txt
+sudo rm /mnt/efs/pv/test.txt
+```
+
+### Reconstruire un cluster vierge
 
 ```bash
 ansible-playbook playbooks/reset.yml
@@ -162,25 +240,12 @@ ansible-playbook playbooks/site.yml
 ```
 
 `reset.yml` désinstalle k3s et démonte l'EFS, mais ne supprime pas le contenu de
-`/mnt/efs/pv` : les données de la base survivent à la reconstruction du cluster.
+`/mnt/efs/pv` : les données de la base survivent à la reconstruction.
 
-### Accès aux nœuds
+### Après une extinction nocturne
 
-Le rôle `kubequest2-student` n'autorise pas la modification du groupe de
-sécurité, qui n'ouvre donc ni le port 22 ni le port 6443 depuis l'extérieur. En
-revanche il autorise tout le trafic entre les nœuds.
-
-Ansible et `kubectl` s'exécutent par conséquent depuis node-1, où l'on se
-connecte par Session Manager. L'utilisateur par défaut est `ec2-user`.
-
-```bash
-aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
-```
-
-Pour qu'Ansible atteigne les workers, une paire de clés est générée sur node-1
-et sa partie publique est déclarée dans `team_ssh_keys`. Le premier dépôt sur
-node-2 et node-3 se fait manuellement par Session Manager, le rôle `ssh_keys`
-prend ensuite le relais.
+Redémarrer les trois instances depuis la console. Le montage EFS et les services
+k3s repartent seuls, par `fstab` et systemd. Vérifier avec `kubectl get nodes`.
 
 ## Ordre de déploiement
 
