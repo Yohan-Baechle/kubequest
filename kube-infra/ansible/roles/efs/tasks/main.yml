@@ -13,8 +13,11 @@
     opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev
     state: mounted
 
+# L'EFS est partage : un seul noeud cree le repertoire, sinon les trois se
+# marchent dessus.
 - name: Creer le repertoire des volumes
   ansible.builtin.file:
     path: "{{ efs_mount_point }}/pv"
     state: directory
     mode: "0777"
+  run_once: true
