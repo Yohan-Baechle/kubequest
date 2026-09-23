@@ -18,6 +18,6 @@ efs_mount_point: /mnt/efs
 # elle peut vivre dans le depot. Ajouter une ligne pour donner l'acces a quelqu'un.
 team_ssh_keys:
   - name: yohan
-    key: "ssh-ed25519 AAAA_CHANGEME yohan"
-  - name: lothaire
-    key: "ssh-ed25519 AAAA_CHANGEME lothaire"
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI2v7Z967VMfkENevwnof1FTGM0XVik9CpXj7KFPlb8 yohan-kubequest"
+  # - name: lothaire
+  #   key: "ssh-ed25519 ... lothaire-kubequest"
