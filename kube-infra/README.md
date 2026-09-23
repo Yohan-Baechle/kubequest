@@ -17,9 +17,7 @@ Les instances sont des `t4g.medium` sous Amazon Linux 2023 : architecture ARM64,
 2 vCPU et 4 Go de RAM chacune. L'accès se fait par AWS SSM Session Manager,
 aucune clé SSH n'est associée aux instances au départ.
 
-Les machines sont éteintes automatiquement chaque soir. Seule l'IP Elastic de
-node-1 survit à ce cycle, c'est donc le point d'entrée du cluster et la base des
-noms de domaine, résolus via `*.52.28.139.102.sslip.io`.
+Les machines sont éteintes automatiquement chaque soir.
 
 Le système de fichiers EFS partagé `fs-0a103a839747b0ff3` est monté sur les trois
 nœuds et sert de support aux volumes persistants. Sa cible de montage se trouve
@@ -56,16 +54,17 @@ flowchart TB
     DNS --> LE
 ```
 
-Seule l'IP Elastic de node-1 survit à l'extinction quotidienne : c'est le
-point d'entrée fixe du cluster, base des noms de domaine et cible d'Ansible.
+Seule l'IP Elastic de node-1 survit à l'extinction quotidienne : c'est le point
+d'entrée fixe du cluster, la cible d'Ansible, et la base des noms de domaine,
+résolus via `*.52.28.139.102.sslip.io`.
 
 ## Contraintes
 
 Ces quatre points conditionnent la plupart des choix qui suivent.
 
 1. Toutes les images déployées doivent exister en `linux/arm64`.
-2. 12 Go de RAM au total pour la plateforme et l'application : il faut une
-   distribution légère et des `requests` mesurées.
+2. Environ 11 Go de RAM utilisables au total pour la plateforme et
+   l'application : il faut une distribution légère et des `requests` mesurées.
 3. Aucun load balancer disponible, l'exposition se fait depuis node-1.
 4. Les IP publiques des workers changent à chaque redémarrage, rien ne doit en
    dépendre : Ansible rebondit sur node-1 et les nœuds communiquent par leurs
