@@ -15,9 +15,8 @@ efs_dns: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com"
 efs_mount_point: /mnt/efs
 
 # Cles publiques autorisees sur les noeuds. Une cle publique n'est pas un secret,
-# elle peut vivre dans le depot. Ajouter une ligne pour donner l'acces a quelqu'un.
-team_ssh_keys:
-  - name: yohan
-    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI2v7Z967VMfkENevwnof1FTGM0XVik9CpXj7KFPlb8 yohan-kubequest"
-  # - name: lothaire
-  #   key: "ssh-ed25519 ... lothaire-kubequest"
+# elle peut vivre dans le depot. Ansible s'executant depuis node-1, c'est sa cle
+# qui doit figurer ici pour qu'il puisse joindre les workers.
+team_ssh_keys: []
+  # - name: node-1
+  #   key: "ssh-ed25519 ... node-1-kubequest"
