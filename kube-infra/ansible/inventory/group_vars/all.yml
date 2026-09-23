@@ -1,8 +1,6 @@
 ---
 aws_region: eu-central-1
-
 cluster_entrypoint_ip: 52.28.139.102
-base_domain: "{{ cluster_entrypoint_ip }}.sslip.io"
 
 k3s_version: v1.31.5+k3s1
 k3s_server_args:
@@ -14,9 +12,8 @@ efs_id: fs-0a103a839747b0ff3
 efs_dns: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com"
 efs_mount_point: /mnt/efs
 
-# Cles publiques autorisees sur les noeuds. Une cle publique n'est pas un secret,
-# elle peut vivre dans le depot. Ansible s'executant depuis node-1, c'est sa cle
-# qui doit figurer ici pour qu'il puisse joindre les workers.
-team_ssh_keys:
+# Cles autorisees sur les noeuds. Ansible tournant depuis node-1, c'est sa cle
+# qui lui permet de joindre les workers.
+ssh_public_keys:
   - name: node-1
     key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPoGA1dPfgfL7bGXb8IbMvFL6H1v70iGSYDGV5RX2RFf node-1-kubequest"

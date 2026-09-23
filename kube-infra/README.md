@@ -143,7 +143,7 @@ limite à une registry privée et authentifiée.
 
 ## Utilisation
 
-Depuis node-1, apres `sudo dnf install -y git ansible-core` et
+Depuis node-1, après `sudo dnf install -y git ansible-core` et
 `ansible-galaxy collection install ansible.posix` :
 
 ```bash
