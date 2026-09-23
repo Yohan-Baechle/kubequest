@@ -11,13 +11,11 @@
   loop: "{{ groups['k3s_cluster'] }}"
 
 - name: Installer les paquets de base
-  ansible.builtin.apt:
+  ansible.builtin.dnf:
     name:
-      - curl
-      - nfs-common
+      - nfs-utils
       - jq
     state: present
-    update_cache: true
 
 - name: Desactiver le swap
   ansible.builtin.command: swapoff -a

@@ -15,9 +15,9 @@ Compte AWS `302805792326`, région `eu-central-1`, AZ `eu-central-1a`.
 | node-2 | worker | `10.0.0.55` | non fixe | `i-0402d50c33a35cf19` |
 | node-3 | worker | `10.0.0.4` | non fixe | `i-029a3af4299b00e26` |
 
-Les instances sont des `t4g.medium` : architecture ARM64, 2 vCPU et 4 Go de RAM
-chacune. L'accès se fait par AWS SSM Session Manager, aucune clé SSH n'est
-associée aux instances au départ.
+Les instances sont des `t4g.medium` sous Amazon Linux 2023 : architecture ARM64,
+2 vCPU et 4 Go de RAM chacune. L'accès se fait par AWS SSM Session Manager,
+aucune clé SSH n'est associée aux instances au départ.
 
 Les machines sont éteintes automatiquement chaque soir. Seule l'IP Elastic de
 node-1 survit à ce cycle, c'est donc le point d'entrée du cluster et la base des
@@ -161,6 +161,8 @@ Session Manager, où l'on dépose ensuite une clé publique pour Ansible.
 ```bash
 aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
 ```
+
+L'utilisateur par défaut des instances est `ec2-user`.
 
 ## Ordre de déploiement
 
