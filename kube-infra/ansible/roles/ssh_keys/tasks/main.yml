@@ -1,0 +1,9 @@
+---
+- name: Deployer les cles publiques de l'equipe
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ item.key }}"
+    state: present
+  loop: "{{ team_ssh_keys }}"
+  loop_control:
+    label: "{{ item.name }}"

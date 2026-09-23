@@ -3,8 +3,6 @@
 Provisionnement du cluster Kubernetes et de ses composants transverses.
 Le dépôt applicatif est dans `../kube-app`.
 
-Les schémas d'architecture sont dans [`docs/architecture.md`](docs/architecture.md).
-
 ## Infrastructure
 
 Compte AWS `302805792326`, région `eu-central-1`, AZ `eu-central-1a`.

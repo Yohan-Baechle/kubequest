@@ -4,6 +4,7 @@
   become: true
   roles:
     - common
+    - ssh_keys
     - efs
 
 - name: Installer le control plane

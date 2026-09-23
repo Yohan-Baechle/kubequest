@@ -13,3 +13,11 @@ k3s_server_args:
 efs_id: fs-0a103a839747b0ff3
 efs_dns: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com"
 efs_mount_point: /mnt/efs
+
+# Cles publiques autorisees sur les noeuds. Une cle publique n'est pas un secret,
+# elle peut vivre dans le depot. Ajouter une ligne pour donner l'acces a quelqu'un.
+team_ssh_keys:
+  - name: yohan
+    key: "ssh-ed25519 AAAA_CHANGEME yohan"
+  - name: lothaire
+    key: "ssh-ed25519 AAAA_CHANGEME lothaire"
