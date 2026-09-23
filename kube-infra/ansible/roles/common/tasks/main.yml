@@ -21,13 +21,20 @@
   ansible.builtin.command: swapoff -a
   changed_when: false
 
-- name: Charger les modules noyau requis
-  community.general.modprobe:
-    name: "{{ item }}"
-    state: present
+- name: Charger les modules noyau au demarrage
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: "0644"
+
+- name: Charger les modules maintenant
+  ansible.builtin.command: "modprobe {{ item }}"
   loop:
     - overlay
     - br_netfilter
+  changed_when: false
 
 - name: Appliquer les parametres sysctl reseau
   ansible.posix.sysctl:
