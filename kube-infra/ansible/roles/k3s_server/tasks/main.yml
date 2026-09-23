@@ -23,16 +23,21 @@
   ansible.builtin.set_fact:
     k3s_token: "{{ node_token.content | b64decode | trim }}"
 
+- name: Creer le repertoire kube
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0700"
+
 - name: Lire le kubeconfig
   ansible.builtin.slurp:
     src: /etc/rancher/k3s/k3s.yaml
   register: kubeconfig
 
-- name: Ecrire le kubeconfig en local
+- name: Ecrire le kubeconfig pour l'utilisateur
   ansible.builtin.copy:
-    content: >-
-      {{ kubeconfig.content | b64decode | replace('127.0.0.1', cluster_entrypoint_ip) }}
-    dest: "{{ playbook_dir }}/../kubeconfig"
+    content: "{{ kubeconfig.content | b64decode }}"
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    owner: "{{ ansible_user }}"
     mode: "0600"
-  delegate_to: localhost
-  become: false

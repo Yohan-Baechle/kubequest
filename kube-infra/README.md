@@ -143,24 +143,34 @@ limite à une registry privée et authentifiée.
 
 ## Utilisation
 
+Depuis node-1 :
+
 ```bash
-cd ansible
+cd kube-infra/ansible
 ansible-playbook playbooks/ping.yml
 ansible-playbook playbooks/site.yml
-export KUBECONFIG=$PWD/kubeconfig
 kubectl get nodes -o wide
 ```
 
-### Accès initial aux nœuds
+Le playbook installe le kubeconfig dans `~/.kube/config` sur node-1.
 
-Aucune clé SSH n'étant associée aux instances, la première connexion se fait par
-Session Manager, où l'on dépose ensuite une clé publique pour Ansible.
+### Accès aux nœuds
+
+Le rôle `kubequest2-student` n'autorise pas la modification du groupe de
+sécurité, qui n'ouvre donc ni le port 22 ni le port 6443 depuis l'extérieur. En
+revanche il autorise tout le trafic entre les nœuds.
+
+Ansible et `kubectl` s'exécutent par conséquent depuis node-1, où l'on se
+connecte par Session Manager. L'utilisateur par défaut est `ec2-user`.
 
 ```bash
 aws ssm start-session --target i-053b2016e9a5dc459 --region eu-central-1
 ```
 
-L'utilisateur par défaut des instances est `ec2-user`.
+Pour qu'Ansible atteigne les workers, une paire de clés est générée sur node-1
+et sa partie publique est déclarée dans `team_ssh_keys`. Le premier dépôt sur
+node-2 et node-3 se fait manuellement par Session Manager, le rôle `ssh_keys`
+prend ensuite le relais.
 
 ## Ordre de déploiement
 
