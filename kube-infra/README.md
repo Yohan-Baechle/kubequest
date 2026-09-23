@@ -155,6 +155,16 @@ kubectl get nodes -o wide
 
 Le playbook installe le kubeconfig dans `~/.kube/config` sur node-1.
 
+Pour repartir d'un cluster vierge, par exemple pour la démonstration :
+
+```bash
+ansible-playbook playbooks/reset.yml
+ansible-playbook playbooks/site.yml
+```
+
+`reset.yml` désinstalle k3s et démonte l'EFS, mais ne supprime pas le contenu de
+`/mnt/efs/pv` : les données de la base survivent à la reconstruction du cluster.
+
 ### Accès aux nœuds
 
 Le rôle `kubequest2-student` n'autorise pas la modification du groupe de
