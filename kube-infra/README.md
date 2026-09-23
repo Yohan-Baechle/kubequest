@@ -196,4 +196,8 @@ flowchart TD
 
 ## État actuel
 
-Provisionnement du cluster écrit, manifestes `gitops/` à venir.
+Cluster provisionné : trois nœuds `Ready` en k3s v1.31.5, Traefik exposé sur les
+ports 80 et 443, EFS monté sur `/mnt/efs`.
+
+Reste à faire : les manifestes `gitops/` et un playbook de remise à zéro, requis
+pour démontrer le provisionnement d'un cluster neuf en soutenance.
